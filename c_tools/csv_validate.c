@@ -3,10 +3,15 @@
  *
  * RetailOps CLI Suite - CSV Validation Tool
  *
+ * NOTE: This is a lightweight CSV line-count and field-count validator.
+ * It is NOT a full production CSV parser. It handles basic quoted fields,
+ * escaped quotes (""), and detects truncated lines and unmatched quotes,
+ * but does not handle multi-line fields or all edge cases defined by RFC 4180.
+ *
  * Usage: csv_validate.exe <filename> <expected_field_count>
  *
  * Reads a CSV file and validates that each row has the expected number of fields.
- * Outputs total lines, valid lines, and invalid lines.
+ * Outputs total lines, valid lines, invalid lines, empty lines, truncated lines.
  *
  * Compile:
  *   gcc c_tools/csv_validate.c -o csv_validate.exe
@@ -31,27 +36,45 @@ typedef struct {
     long invalid_lines;
     long empty_lines;
     long truncated_lines;
+    long unmatched_quote_lines;
     char first_error[256];
     int has_error;
 } ValidationResult;
 
 /* Function prototypes */
-int count_fields(const char *line);
+int count_fields_escaped(const char *line, int *has_unmatched_quotes);
 int is_empty_line(const char *line);
 void trim_trailing_newline(char *line);
 ValidationResult validate_csv(const char *filename, int expected_fields);
 void print_result(const ValidationResult *result, const char *filename, int expected_fields);
 int parse_arguments(int argc, char *argv[], char *filename, int *expected_fields);
+void drain_remaining_line(FILE *file);
+
+/*
+ * Drain remaining characters on the current line (after a partial read).
+ * Reads and discards until newline or EOF.
+ */
+void drain_remaining_line(FILE *file) {
+    int ch;
+    while ((ch = fgetc(file)) != '\n' && ch != EOF) {
+        /* discard */
+    }
+}
 
 /*
  * Count the number of comma-separated fields in a line.
- * Handles quoted fields with embedded commas.
- * Returns the field count, or -1 on error.
+ * Handles quoted fields with embedded commas and escaped quotes ("").
+ * Sets *has_unmatched_quotes to 1 if quotes are unbalanced.
+ * Returns the field count, or -1 on error (e.g., unreasonably large count).
  */
-int count_fields(const char *line) {
+int count_fields_escaped(const char *line, int *has_unmatched_quotes) {
     int count = 0;
     int in_quotes = 0;
     const char *p = line;
+
+    if (has_unmatched_quotes) {
+        *has_unmatched_quotes = 0;
+    }
 
     if (line == NULL || *line == '\0') {
         return 0;
@@ -62,11 +85,26 @@ int count_fields(const char *line) {
 
     while (*p) {
         if (*p == '"') {
+            /* Check for escaped quote "" inside a quoted field */
+            if (in_quotes && *(p + 1) == '"') {
+                /* Escaped quote: skip the second quote */
+                p += 2;
+                continue;
+            }
             in_quotes = !in_quotes;
         } else if (*p == ',' && !in_quotes) {
             count++;
+            if (count > MAX_FIELD_COUNT * 10) {
+                /* Sanity fail: unreasonably large count */
+                return -1;
+            }
         }
         p++;
+    }
+
+    /* Check for unmatched quotes at end of line */
+    if (in_quotes && has_unmatched_quotes) {
+        *has_unmatched_quotes = 1;
     }
 
     return count;
@@ -99,7 +137,8 @@ void trim_trailing_newline(char *line) {
 
 /*
  * Validate a CSV file.
- * Reads each line, counts fields, and compares to expected count.
+ * Reads each line, counts fields (with escaped quote support), and compares
+ * to expected count. Detects truncated lines, unmatched quotes, etc.
  * Returns a ValidationResult struct with summary statistics.
  */
 ValidationResult validate_csv(const char *filename, int expected_fields) {
@@ -114,6 +153,7 @@ ValidationResult validate_csv(const char *filename, int expected_fields) {
     result.invalid_lines = 0;
     result.empty_lines = 0;
     result.truncated_lines = 0;
+    result.unmatched_quote_lines = 0;
     result.first_error[0] = '\0';
     result.has_error = 0;
 
@@ -130,6 +170,8 @@ ValidationResult validate_csv(const char *filename, int expected_fields) {
     while (fgets(line, sizeof(line), file) != NULL) {
         int fields;
         size_t line_len;
+        int has_newline;
+        int has_unmatched = 0;
         line_number++;
 
         trim_trailing_newline(line);
@@ -140,9 +182,20 @@ ValidationResult validate_csv(const char *filename, int expected_fields) {
             continue;
         }
 
-        /* Check for truncated lines (buffer full without newline) */
         line_len = strlen(line);
-        if (line_len >= MAX_LINE_LENGTH - 1) {
+
+        /* Check if the line was fully read (i.e., contains a newline in the buffer) */
+        has_newline = 0;
+        {
+            const char *nl = line;
+            while (*nl) {
+                if (*nl == '\n') { has_newline = 1; break; }
+                nl++;
+            }
+        }
+
+        /* Detect truncated lines: line filled buffer without reaching newline */
+        if (!has_newline && line_len >= MAX_LINE_LENGTH - 1) {
             result.truncated_lines++;
             result.invalid_lines++;
             if (result.first_error[0] == '\0') {
@@ -150,20 +203,34 @@ ValidationResult validate_csv(const char *filename, int expected_fields) {
                          "Line %ld: line too long (truncated at %d chars)",
                          line_number, MAX_LINE_LENGTH - 1);
             }
+            /* Drain the rest of the line from the file stream */
+            drain_remaining_line(file);
             continue;
         }
 
         result.total_lines++;
 
-        fields = count_fields(line);
+        fields = count_fields_escaped(line, &has_unmatched);
 
-        /* Sanity check: unreasonably large field count */
-        if (fields > MAX_FIELD_COUNT) {
+        /* Check for unreasonably large field count */
+        if (fields < 0 || fields > MAX_FIELD_COUNT) {
             result.invalid_lines++;
             if (result.first_error[0] == '\0') {
                 snprintf(result.first_error, sizeof(result.first_error),
                          "Line %ld: field count %d exceeds sanity limit %d",
                          line_number, fields, MAX_FIELD_COUNT);
+            }
+            continue;
+        }
+
+        /* Check for unmatched quotes */
+        if (has_unmatched) {
+            result.invalid_lines++;
+            result.unmatched_quote_lines++;
+            if (result.first_error[0] == '\0') {
+                snprintf(result.first_error, sizeof(result.first_error),
+                         "Line %ld: unmatched quote detected",
+                         line_number);
             }
             continue;
         }
@@ -206,6 +273,7 @@ void print_result(const ValidationResult *result, const char *filename, int expe
     printf("  Invalid Lines:     %ld\n", result->invalid_lines);
     printf("  Empty Lines:       %ld\n", result->empty_lines);
     printf("  Truncated Lines:   %ld\n", result->truncated_lines);
+    printf("  Unmatched Quotes:  %ld\n", result->unmatched_quote_lines);
     printf("----------------------------------------\n");
 
     if (result->total_lines > 0) {
@@ -225,6 +293,9 @@ void print_result(const ValidationResult *result, const char *filename, int expe
     if (result->has_error) {
         printf("\n  ERROR: %s\n", result->first_error);
     }
+
+    printf("\n  NOTE: This is a lightweight CSV field-count validator.\n");
+    printf("  It is not a full RFC 4180 parser.\n");
 }
 
 /*
@@ -272,6 +343,7 @@ int main(int argc, char *argv[]) {
     ValidationResult result;
 
     printf("CSV Validation Tool - RetailOps CLI Suite\n");
+    printf("  Lightweight CSV field-count validator\n");
     printf("========================================\n\n");
 
     /* Parse command-line arguments */

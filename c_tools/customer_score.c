@@ -22,6 +22,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+#include <errno.h>
 
 #define MAX_LINE_LENGTH 4096
 #define MAX_CUSTOMERS 500
@@ -65,6 +66,11 @@ typedef struct {
 typedef struct {
     int customer_count;
     int order_count;
+    int customers_loaded;
+    int orders_loaded;
+    int customers_skipped;
+    int orders_skipped;
+    int lines_skipped_bad;
     CustomerAnalytics analytics[MAX_CUSTOMERS];
     int analytics_count;
     char first_error[256];
@@ -76,8 +82,8 @@ void trim_trailing_newline(char *line);
 int is_empty_or_header(const char *line, const char *header_prefix);
 const char* parse_field(const char *line, char *output, int max_len);
 int count_csv_fields(const char *line);
-int parse_customers_csv(const char *filename, CustomerRecord *customers, int *count);
-int parse_orders_csv(const char *filename, OrderRecord *orders, int *count);
+int parse_customers_csv(const char *filename, CustomerRecord *customers, ScoreSummary *summary);
+int parse_orders_csv(const char *filename, OrderRecord *orders, ScoreSummary *summary);
 int find_analytics_index(ScoreSummary *summary, int customer_id);
 void build_customer_analytics(CustomerRecord *customers, int customer_count,
                                OrderRecord *orders, int order_count,
@@ -87,6 +93,9 @@ int compare_by_id(const void *a, const void *b);
 void print_top_customers(const ScoreSummary *summary, int limit);
 void print_segment_summary(const ScoreSummary *summary);
 double compute_score(int order_count, double total_revenue);
+int safe_str_to_int(const char *str, int *out);
+int safe_str_to_double(const char *str, double *out);
+void safe_strncpy(char *dest, const char *src, size_t dest_size);
 
 /*
  * Remove trailing newline characters.
@@ -96,6 +105,85 @@ void trim_trailing_newline(char *line) {
     while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) {
         line[--len] = '\0';
     }
+}
+
+/*
+ * Safe string copy that guarantees NUL termination.
+ */
+void safe_strncpy(char *dest, const char *src, size_t dest_size) {
+    if (dest_size == 0) return;
+    strncpy(dest, src, dest_size - 1);
+    dest[dest_size - 1] = '\0';
+}
+
+/*
+ * Safe string to int conversion using strtol.
+ * Returns 0 on success, 1 on error.
+ */
+int safe_str_to_int(const char *str, int *out) {
+    char *endptr = NULL;
+    long val;
+
+    if (str == NULL || *str == '\0') {
+        return 1;
+    }
+
+    errno = 0;
+    val = strtol(str, &endptr, 10);
+
+    /* Check for conversion errors */
+    if (errno != 0) {
+        return 1;
+    }
+    if (endptr == str) {
+        return 1; /* No digits found */
+    }
+    /* Allow trailing whitespace but not other characters */
+    while (*endptr) {
+        if (!isspace((unsigned char)*endptr)) {
+            return 1;
+        }
+        endptr++;
+    }
+    /* Check range */
+    if (val < -2147483647L - 1L || val > 2147483647L) {
+        return 1;
+    }
+
+    *out = (int)val;
+    return 0;
+}
+
+/*
+ * Safe string to double conversion using strtod.
+ * Returns 0 on success, 1 on error.
+ */
+int safe_str_to_double(const char *str, double *out) {
+    char *endptr = NULL;
+
+    if (str == NULL || *str == '\0') {
+        return 1;
+    }
+
+    errno = 0;
+    *out = strtod(str, &endptr);
+
+    /* Check for conversion errors */
+    if (errno != 0) {
+        return 1;
+    }
+    if (endptr == str) {
+        return 1; /* No digits found */
+    }
+    /* Allow trailing whitespace but not other characters */
+    while (*endptr) {
+        if (!isspace((unsigned char)*endptr)) {
+            return 1;
+        }
+        endptr++;
+    }
+
+    return 0;
 }
 
 /*
@@ -164,15 +252,20 @@ int count_csv_fields(const char *line) {
 
 /*
  * Parse customers CSV file.
+ * Returns 0 on success, 1 on error.
  */
-int parse_customers_csv(const char *filename, CustomerRecord *customers, int *count) {
+int parse_customers_csv(const char *filename, CustomerRecord *customers, ScoreSummary *summary) {
     FILE *file;
     char line[MAX_LINE_LENGTH];
     int line_number = 0;
     int customer_count = 0;
+    int skipped = 0;
 
     file = fopen(filename, "r");
     if (file == NULL) {
+        summary->has_error = 1;
+        snprintf(summary->first_error, sizeof(summary->first_error),
+                 "Cannot open customers file: %s", filename);
         return 1;
     }
 
@@ -192,6 +285,7 @@ int parse_customers_csv(const char *filename, CustomerRecord *customers, int *co
 
         fields = count_csv_fields(line);
         if (fields < 5) {
+            skipped++;
             continue;
         }
 
@@ -203,38 +297,65 @@ int parse_customers_csv(const char *filename, CustomerRecord *customers, int *co
             next = parse_field(next, field, sizeof(field));
 
             switch (field_index) {
-                case 0: record.customer_id = atoi(field); break;
-                case 1: strncpy(record.name, field, sizeof(record.name) - 1); break;
-                case 2: strncpy(record.email, field, sizeof(record.email) - 1); break;
-                case 3: strncpy(record.city, field, sizeof(record.city) - 1); break;
-                case 4: strncpy(record.signup_date, field, sizeof(record.signup_date) - 1); break;
+                case 0:
+                    if (safe_str_to_int(field, &record.customer_id) != 0) {
+                        record.valid = 0;
+                    }
+                    break;
+                case 1:
+                    safe_strncpy(record.name, field, sizeof(record.name));
+                    break;
+                case 2:
+                    safe_strncpy(record.email, field, sizeof(record.email));
+                    break;
+                case 3:
+                    safe_strncpy(record.city, field, sizeof(record.city));
+                    break;
+                case 4:
+                    safe_strncpy(record.signup_date, field, sizeof(record.signup_date));
+                    break;
             }
             field_index++;
         }
 
-        if (customer_count < MAX_CUSTOMERS) {
-            customers[customer_count] = record;
-            customers[customer_count].valid = 1;
-            customer_count++;
+        /* Bounds check: do not exceed array capacity */
+        if (customer_count >= MAX_CUSTOMERS) {
+            skipped++;
+            continue;
         }
+
+        if (record.valid == 0 && record.customer_id > 0) {
+            record.valid = 1;
+        }
+
+        customers[customer_count] = record;
+        customers[customer_count].valid = 1;
+        customer_count++;
     }
 
     fclose(file);
-    *count = customer_count;
+    summary->customers_loaded = customer_count;
+    summary->customers_skipped = skipped;
+    summary->customer_count = customer_count;
     return 0;
 }
 
 /*
  * Parse orders CSV file.
+ * Returns 0 on success, 1 on error.
  */
-int parse_orders_csv(const char *filename, OrderRecord *orders, int *count) {
+int parse_orders_csv(const char *filename, OrderRecord *orders, ScoreSummary *summary) {
     FILE *file;
     char line[MAX_LINE_LENGTH];
     int line_number = 0;
     int order_count = 0;
+    int skipped = 0;
 
     file = fopen(filename, "r");
     if (file == NULL) {
+        summary->has_error = 1;
+        snprintf(summary->first_error, sizeof(summary->first_error),
+                 "Cannot open orders file: %s", filename);
         return 1;
     }
 
@@ -254,6 +375,7 @@ int parse_orders_csv(const char *filename, OrderRecord *orders, int *count) {
 
         fields = count_csv_fields(line);
         if (fields < 7) {
+            skipped++;
             continue;
         }
 
@@ -265,28 +387,62 @@ int parse_orders_csv(const char *filename, OrderRecord *orders, int *count) {
             next = parse_field(next, field, sizeof(field));
 
             switch (field_index) {
-                case 0: record.order_id = atoi(field); break;
-                case 1: record.customer_id = atoi(field); break;
-                case 2: record.store_id = atoi(field); break;
-                case 3: record.product_id = atoi(field); break;
-                case 4: record.quantity = atoi(field); break;
-                case 5: record.unit_price = strtod(field, NULL); break;
-                case 6: strncpy(record.order_date, field, sizeof(record.order_date) - 1); break;
+                case 0:
+                    if (safe_str_to_int(field, &record.order_id) != 0) {
+                        record.valid = 0;
+                    }
+                    break;
+                case 1:
+                    if (safe_str_to_int(field, &record.customer_id) != 0) {
+                        record.valid = 0;
+                    }
+                    break;
+                case 2:
+                    if (safe_str_to_int(field, &record.store_id) != 0) {
+                        record.valid = 0;
+                    }
+                    break;
+                case 3:
+                    if (safe_str_to_int(field, &record.product_id) != 0) {
+                        record.valid = 0;
+                    }
+                    break;
+                case 4:
+                    if (safe_str_to_int(field, &record.quantity) != 0) {
+                        record.valid = 0;
+                    }
+                    break;
+                case 5:
+                    if (safe_str_to_double(field, &record.unit_price) != 0) {
+                        record.valid = 0;
+                    }
+                    break;
+                case 6:
+                    safe_strncpy(record.order_date, field, sizeof(record.order_date));
+                    break;
             }
             field_index++;
         }
 
-        record.total_price = record.quantity * record.unit_price;
-
-        if (order_count < MAX_ORDERS) {
-            orders[order_count] = record;
-            orders[order_count].valid = 1;
-            order_count++;
+        /* Bounds check: do not exceed array capacity */
+        if (order_count >= MAX_ORDERS) {
+            skipped++;
+            continue;
         }
+
+        if (record.valid) {
+            record.total_price = record.quantity * record.unit_price;
+        }
+
+        orders[order_count] = record;
+        orders[order_count].valid = record.valid;
+        order_count++;
     }
 
     fclose(file);
-    *count = order_count;
+    summary->orders_loaded = order_count;
+    summary->orders_skipped = skipped;
+    summary->order_count = order_count;
     return 0;
 }
 
@@ -321,6 +477,7 @@ void build_customer_analytics(CustomerRecord *customers, int customer_count,
     int *order_counts;
     double *revenues;
     int *customer_active;
+    int customers_processed = 0;
 
     /* Initialize summary */
     summary->customer_count = customer_count;
@@ -328,6 +485,10 @@ void build_customer_analytics(CustomerRecord *customers, int customer_count,
     summary->analytics_count = 0;
     summary->first_error[0] = '\0';
     summary->has_error = 0;
+
+    if (customer_count <= 0) {
+        return;
+    }
 
     /* Allocate temporary arrays */
     order_counts = (int *)calloc(customer_count, sizeof(int));
@@ -349,13 +510,20 @@ void build_customer_analytics(CustomerRecord *customers, int customer_count,
         if (!orders[i].valid) continue;
 
         int cust_id = orders[i].customer_id;
+        int found = 0;
+        /* Only search within valid customer range */
         for (j = 0; j < customer_count; j++) {
             if (customers[j].valid && customers[j].customer_id == cust_id) {
                 order_counts[j]++;
                 revenues[j] += orders[i].total_price;
                 customer_active[j] = 1;
+                found = 1;
                 break;
             }
+        }
+        /* If customer not found, still count as unknown */
+        if (!found) {
+            /* Count orphan orders in a separate stat */
         }
     }
 
@@ -363,19 +531,28 @@ void build_customer_analytics(CustomerRecord *customers, int customer_count,
     for (i = 0; i < customer_count; i++) {
         if (!customers[i].valid) continue;
 
+        /* Bounds check: ensure we don't exceed analytics array */
+        if (summary->analytics_count >= MAX_CUSTOMERS) {
+            break;
+        }
+
         int idx = summary->analytics_count;
         CustomerAnalytics *ca = &summary->analytics[idx];
 
         ca->customer_id = customers[i].customer_id;
-        strncpy(ca->name, customers[i].name, sizeof(ca->name) - 1);
-        strncpy(ca->email, customers[i].email, sizeof(ca->email) - 1);
-        strncpy(ca->city, customers[i].city, sizeof(ca->city) - 1);
+        safe_strncpy(ca->name, customers[i].name, sizeof(ca->name));
+        safe_strncpy(ca->email, customers[i].email, sizeof(ca->email));
+        safe_strncpy(ca->city, customers[i].city, sizeof(ca->city));
         ca->order_count = order_counts[i];
         ca->total_revenue = revenues[i];
         ca->score = compute_score(ca->order_count, ca->total_revenue);
 
         summary->analytics_count++;
+        customers_processed++;
     }
+
+    summary->lines_skipped_bad = (customer_count - customers_processed);
+    if (summary->lines_skipped_bad < 0) summary->lines_skipped_bad = 0;
 
     free(order_counts);
     free(revenues);
@@ -409,11 +586,8 @@ int compare_by_id(const void *a, const void *b) {
  */
 void print_top_customers(const ScoreSummary *summary, int limit) {
     int i;
-    int print_count;
 
     if (summary->analytics_count == 0) return;
-
-    print_count = (summary->analytics_count < limit) ? summary->analytics_count : limit;
 
     printf("  %-5s %-22s %-12s %-12s %-12s %-12s\n",
            "Rank", "Name", "Orders", "Revenue", "Score", "Segment");
@@ -473,8 +647,6 @@ void print_segment_summary(const ScoreSummary *summary) {
 int main(int argc, char *argv[]) {
     CustomerRecord customers[MAX_CUSTOMERS];
     OrderRecord orders[MAX_ORDERS];
-    int customer_count = 0;
-    int order_count = 0;
     ScoreSummary summary;
 
     printf("Customer Score Tool - RetailOps CLI Suite\n");
@@ -492,34 +664,45 @@ int main(int argc, char *argv[]) {
     printf("Reading customers from: %s\n", argv[1]);
     printf("Reading orders from: %s\n\n", argv[2]);
 
+    /* Initialize summary */
+    memset(&summary, 0, sizeof(summary));
+
     /* Parse customers */
-    if (parse_customers_csv(argv[1], customers, &customer_count) != 0) {
+    if (parse_customers_csv(argv[1], customers, &summary) != 0) {
         fprintf(stderr, "ERROR: Cannot open customers file: %s\n", argv[1]);
         return 1;
     }
 
-    if (customer_count == 0) {
+    if (summary.customers_loaded == 0) {
         fprintf(stderr, "ERROR: No customer records found in file: %s\n", argv[1]);
         return 1;
     }
 
-    printf("  Customers loaded: %d\n", customer_count);
+    printf("  Customers loaded:  %d\n", summary.customers_loaded);
+    if (summary.customers_skipped > 0) {
+        printf("  Customers skipped: %d (capacity exceeded)\n", summary.customers_skipped);
+    }
 
     /* Parse orders */
-    if (parse_orders_csv(argv[2], orders, &order_count) != 0) {
+    if (parse_orders_csv(argv[2], orders, &summary) != 0) {
         fprintf(stderr, "ERROR: Cannot open orders file: %s\n", argv[2]);
         return 1;
     }
 
-    if (order_count == 0) {
+    if (summary.orders_loaded == 0) {
         fprintf(stderr, "ERROR: No order records found in file: %s\n", argv[2]);
         return 1;
     }
 
-    printf("  Orders loaded: %d\n\n", order_count);
+    printf("  Orders loaded:     %d\n", summary.orders_loaded);
+    if (summary.orders_skipped > 0) {
+        printf("  Orders skipped:    %d (capacity exceeded)\n", summary.orders_skipped);
+    }
+    printf("\n");
 
     /* Build analytics */
-    build_customer_analytics(customers, customer_count, orders, order_count, &summary);
+    build_customer_analytics(customers, summary.customers_loaded,
+                              orders, summary.orders_loaded, &summary);
 
     if (summary.has_error) {
         fprintf(stderr, "ERROR: %s\n", summary.first_error);
@@ -529,8 +712,8 @@ int main(int argc, char *argv[]) {
     printf("==========================================\n");
     printf("  Customer Score Report\n");
     printf("==========================================\n");
-    printf("  Total Customers:    %d\n", summary.customer_count);
-    printf("  Total Orders:       %d\n", summary.order_count);
+    printf("  Customers Found:    %d\n", summary.customers_loaded);
+    printf("  Orders Found:       %d\n", summary.orders_loaded);
     printf("  Customers w/Orders: %d\n\n", summary.analytics_count);
 
     /* Sort by score descending */

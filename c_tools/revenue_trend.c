@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <errno.h>
 
 #define MAX_LINE_LENGTH 4096
 #define MAX_MONTHS 500
@@ -51,6 +52,8 @@ typedef struct {
 /* Structure for revenue summary */
 typedef struct {
     int record_count;
+    int records_loaded;
+    int records_skipped;
     int month_count;
     double total_revenue;
     double average_monthly_revenue;
@@ -73,6 +76,9 @@ void sort_months(MonthAggregate *months, int count);
 int compare_months(const void *a, const void *b);
 void print_revenue_summary(const RevenueSummary *summary, const char *filename);
 void print_month_trend_table(const RevenueSummary *summary);
+void safe_strncpy(char *dest, const char *src, size_t dest_size);
+int safe_str_to_int(const char *str, int *out);
+int safe_str_to_double(const char *str, double *out);
 
 /*
  * Remove trailing newline characters.
@@ -82,6 +88,82 @@ void trim_trailing_newline(char *line) {
     while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) {
         line[--len] = '\0';
     }
+}
+
+/*
+ * Safe string copy that guarantees NUL termination.
+ */
+void safe_strncpy(char *dest, const char *src, size_t dest_size) {
+    if (dest_size == 0) return;
+    strncpy(dest, src, dest_size - 1);
+    dest[dest_size - 1] = '\0';
+}
+
+/*
+ * Safe string to int conversion using strtol.
+ * Returns 0 on success, 1 on error.
+ */
+int safe_str_to_int(const char *str, int *out) {
+    char *endptr = NULL;
+    long val;
+
+    if (str == NULL || *str == '\0') {
+        return 1;
+    }
+
+    errno = 0;
+    val = strtol(str, &endptr, 10);
+
+    if (errno != 0) {
+        return 1;
+    }
+    if (endptr == str) {
+        return 1; /* No digits found */
+    }
+    /* Allow trailing whitespace but not other characters */
+    while (*endptr) {
+        if (!isspace((unsigned char)*endptr)) {
+            return 1;
+        }
+        endptr++;
+    }
+    if (val < -2147483647L - 1L || val > 2147483647L) {
+        return 1;
+    }
+
+    *out = (int)val;
+    return 0;
+}
+
+/*
+ * Safe string to double conversion using strtod.
+ * Returns 0 on success, 1 on error.
+ */
+int safe_str_to_double(const char *str, double *out) {
+    char *endptr = NULL;
+
+    if (str == NULL || *str == '\0') {
+        return 1;
+    }
+
+    errno = 0;
+    *out = strtod(str, &endptr);
+
+    if (errno != 0) {
+        return 1;
+    }
+    if (endptr == str) {
+        return 1; /* No digits found */
+    }
+    /* Allow trailing whitespace but not other characters */
+    while (*endptr) {
+        if (!isspace((unsigned char)*endptr)) {
+            return 1;
+        }
+        endptr++;
+    }
+
+    return 0;
 }
 
 /*
@@ -150,7 +232,7 @@ int count_csv_fields(const char *line) {
 
 /*
  * Find or create a month entry in the aggregated months array.
- * Returns the index of the month.
+ * Returns the index of the month, or -1 if capacity exceeded.
  */
 int find_or_create_month(RevenueSummary *summary, int year, int month) {
     int i;
@@ -182,9 +264,12 @@ int parse_revenue_csv(const char *filename, RevenueSummary *summary) {
     char line[MAX_LINE_LENGTH];
     int line_number = 0;
     int record_index = 0;
+    int skipped = 0;
 
     /* Initialize summary */
     summary->record_count = 0;
+    summary->records_loaded = 0;
+    summary->records_skipped = 0;
     summary->month_count = 0;
     summary->total_revenue = 0.0;
     summary->average_monthly_revenue = 0.0;
@@ -235,21 +320,27 @@ int parse_revenue_csv(const char *filename, RevenueSummary *summary) {
             next = parse_field(next, field, sizeof(field));
 
             switch (field_index) {
-                case 0: record.year = atoi(field); break;
-                case 1: record.month = atoi(field); break;
-                case 2: record.store_id = atoi(field); break;
-                case 3: record.total_revenue = strtod(field, NULL); break;
-                case 4: record.total_orders = atoi(field); break;
+                case 0: safe_str_to_int(field, &record.year); break;
+                case 1: safe_str_to_int(field, &record.month); break;
+                case 2: safe_str_to_int(field, &record.store_id); break;
+                case 3: safe_str_to_double(field, &record.total_revenue); break;
+                case 4: safe_str_to_int(field, &record.total_orders); break;
             }
             field_index++;
         }
 
-        /* Store record */
-        if (record_index < MAX_MONTHS) {
-            summary->records[record_index] = record;
-            record_index++;
-        }
         summary->record_count++;
+
+        /* Bounds check: skip storing in array if capacity exceeded */
+        if (record_index >= MAX_MONTHS) {
+            skipped++;
+            continue;
+        }
+
+        /* Store record */
+        summary->records[record_index] = record;
+        record_index++;
+        summary->records_loaded++;
 
         /* Aggregate by month */
         month_idx = find_or_create_month(summary, record.year, record.month);
@@ -271,6 +362,7 @@ int parse_revenue_csv(const char *filename, RevenueSummary *summary) {
     }
 
     fclose(file);
+    summary->records_skipped = skipped;
     return 0;
 }
 
@@ -318,6 +410,10 @@ void print_revenue_summary(const RevenueSummary *summary, const char *filename) 
     printf("  File:                %s\n", filename);
     printf("----------------------------------------\n");
     printf("  Total Records:       %d\n", summary->record_count);
+    printf("  Records Loaded:      %d\n", summary->records_loaded);
+    if (summary->records_skipped > 0) {
+        printf("  Records Skipped:     %d (capacity exceeded)\n", summary->records_skipped);
+    }
     printf("  Distinct Months:     %d\n", summary->month_count);
     printf("----------------------------------------\n");
     printf("  Total Revenue:       $%.2f\n", summary->total_revenue);
