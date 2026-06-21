@@ -1,0 +1,13 @@
+store_id,store_name,city,state,manager,open_date,size_sqft
+1,Downtown Flagship,New York,NY,Sarah Connor,2020-01-10,15000
+2,Westside Mall,Los Angeles,CA,John Smith,2020-03-15,12000
+3,Nordstrom Plaza,Chicago,IL,Maria Garcia,2020-06-20,10000
+4,Southern Cross,Houston,TX,David Lee,2021-01-05,9500
+5,Desert Peak,Phoenix,AZ,Lisa Wang,2021-04-12,8000
+6,East River,Philadelphia,PA,Tom Brown,2021-07-18,7500
+7,Mountain View,Denver,CO,Emily Chen,2021-10-01,9000
+8,Pacific Square,Seattle,WA,James Wilson,2022-01-15,11000
+9,Bay Area Hub,San Francisco,CA,Amy Davis,2022-04-22,13000
+10,Capital Center,Washington,DC,Ryan Miller,2022-08-10,8500
+11,Beacon Street,Boston,MA,Kelly Moore,2023-02-18,7000
+12,Music City Plaza,Nashville,TN,Chris Taylor,2023-06-05,6500
