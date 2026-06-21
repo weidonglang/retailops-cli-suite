@@ -247,8 +247,8 @@ int parse_revenue_csv(const char *filename, RevenueSummary *summary) {
         /* Store record */
         if (record_index < MAX_MONTHS) {
             summary->records[record_index] = record;
+            record_index++;
         }
-        record_index++;
         summary->record_count++;
 
         /* Aggregate by month */

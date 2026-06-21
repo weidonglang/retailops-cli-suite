@@ -250,8 +250,8 @@ int parse_inventory_csv(const char *filename, InventorySummary *summary) {
         /* Update summary */
         if (item_index < MAX_ITEMS) {
             summary->items[item_index] = item;
+            item_index++;
         }
-        item_index++;
         summary->item_count++;
         summary->total_stock += item.current_stock;
 

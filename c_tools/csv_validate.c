@@ -22,6 +22,7 @@
 
 #define MAX_LINE_LENGTH 4096
 #define MAX_FILENAME_LENGTH 1024
+#define MAX_FIELD_COUNT 100
 
 /* Structure to hold validation results */
 typedef struct {
@@ -29,6 +30,7 @@ typedef struct {
     long valid_lines;
     long invalid_lines;
     long empty_lines;
+    long truncated_lines;
     char first_error[256];
     int has_error;
 } ValidationResult;
@@ -111,6 +113,7 @@ ValidationResult validate_csv(const char *filename, int expected_fields) {
     result.valid_lines = 0;
     result.invalid_lines = 0;
     result.empty_lines = 0;
+    result.truncated_lines = 0;
     result.first_error[0] = '\0';
     result.has_error = 0;
 
@@ -126,6 +129,7 @@ ValidationResult validate_csv(const char *filename, int expected_fields) {
     /* Read and validate each line */
     while (fgets(line, sizeof(line), file) != NULL) {
         int fields;
+        size_t line_len;
         line_number++;
 
         trim_trailing_newline(line);
@@ -136,9 +140,33 @@ ValidationResult validate_csv(const char *filename, int expected_fields) {
             continue;
         }
 
+        /* Check for truncated lines (buffer full without newline) */
+        line_len = strlen(line);
+        if (line_len >= MAX_LINE_LENGTH - 1) {
+            result.truncated_lines++;
+            result.invalid_lines++;
+            if (result.first_error[0] == '\0') {
+                snprintf(result.first_error, sizeof(result.first_error),
+                         "Line %ld: line too long (truncated at %d chars)",
+                         line_number, MAX_LINE_LENGTH - 1);
+            }
+            continue;
+        }
+
         result.total_lines++;
 
         fields = count_fields(line);
+
+        /* Sanity check: unreasonably large field count */
+        if (fields > MAX_FIELD_COUNT) {
+            result.invalid_lines++;
+            if (result.first_error[0] == '\0') {
+                snprintf(result.first_error, sizeof(result.first_error),
+                         "Line %ld: field count %d exceeds sanity limit %d",
+                         line_number, fields, MAX_FIELD_COUNT);
+            }
+            continue;
+        }
 
         if (fields == expected_fields) {
             result.valid_lines++;
@@ -177,6 +205,7 @@ void print_result(const ValidationResult *result, const char *filename, int expe
     printf("  Valid Lines:       %ld\n", result->valid_lines);
     printf("  Invalid Lines:     %ld\n", result->invalid_lines);
     printf("  Empty Lines:       %ld\n", result->empty_lines);
+    printf("  Truncated Lines:   %ld\n", result->truncated_lines);
     printf("----------------------------------------\n");
 
     if (result->total_lines > 0) {
@@ -259,6 +288,12 @@ int main(int argc, char *argv[]) {
     /* Check for file open errors */
     if (result.has_error && result.total_lines == 0 && result.valid_lines == 0) {
         fprintf(stderr, "ERROR: %s\n", result.first_error);
+        return 1;
+    }
+
+    /* Warn if file has no data lines (possibly all headers or empty) */
+    if (result.total_lines == 0) {
+        fprintf(stderr, "ERROR: No data lines found in file: %s\n", filename);
         return 1;
     }
 
