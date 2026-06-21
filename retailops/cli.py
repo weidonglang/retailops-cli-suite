@@ -25,7 +25,12 @@ from retailops.data_loader import (
     load_sales, load_inventory, load_customers, load_orders,
     load_returns, load_stores, load_monthly_revenue, read_csv_rows,
 )
-from retailops.validators import validate_sales_record, validate_inventory_record
+from retailops.validators import (
+    validate_sales_record, validate_inventory_record,
+    validate_customer_record, validate_order_record,
+    validate_return_record, validate_store_record,
+    validate_monthly_revenue_record,
+)
 from retailops.sales import (
     calculate_total_revenue, calculate_total_quantity,
     calculate_average_order_revenue, group_revenue_by_product,
@@ -72,7 +77,7 @@ from retailops.report_builder import (
 def cmd_sales(args):
     """Run sales analytics on a sales/orders CSV file."""
     try:
-        orders = load_orders(args.file)
+        orders = load_sales(args.file)
         summary = build_sales_summary(orders)
         print_sales_summary(summary)
         return 0
@@ -194,29 +199,98 @@ def cmd_report(args):
         return 1
 
 
+def _detect_csv_type(columns):
+    """
+    Detect the CSV file type based on its column headers.
+
+    Args:
+        columns: Set of column names from the CSV header.
+
+    Returns:
+        String identifier for the detected type, or None if unknown.
+    """
+    col_set = set(columns)
+
+    # sales.csv: order_id, customer_id, store_id, product_id, product_name, category, quantity, unit_price, order_date, total_amount
+    if col_set >= {"product_name", "total_amount", "category", "order_id"}:
+        return "sales"
+    # inventory.csv: product_id, product_name, category, current_stock, reorder_point, unit_cost, supplier
+    if col_set >= {"current_stock", "reorder_point", "unit_cost", "supplier"}:
+        return "inventory"
+    # customers.csv: customer_id, name, email, city, signup_date
+    if col_set >= {"name", "email", "city", "signup_date", "customer_id"}:
+        return "customer"
+    # orders.csv: order_id, customer_id, store_id, product_id, quantity, unit_price, order_date
+    if col_set >= {"order_id", "customer_id", "store_id", "product_id", "quantity", "unit_price", "order_date"}:
+        return "order"
+    # returns.csv: return_id, order_id, product_id, quantity, return_amount, return_reason, return_date
+    if col_set >= {"return_id", "return_amount", "return_reason", "return_date"}:
+        return "return"
+    # stores.csv: store_id, store_name, city, state, manager, open_date, size_sqft
+    if col_set >= {"store_id", "store_name", "manager", "size_sqft"}:
+        return "store"
+    # monthly_revenue.csv: year, month, store_id, total_revenue, total_orders
+    if col_set >= {"year", "month", "total_revenue", "total_orders"}:
+        return "monthly_revenue"
+
+    return None
+
+
+def _get_validator(csv_type):
+    """
+    Get the appropriate record validator for a CSV type.
+
+    Args:
+        csv_type: String identifier from _detect_csv_type().
+
+    Returns:
+        Validator function, or None if unknown type.
+    """
+    validators = {
+        "sales": validate_sales_record,
+        "inventory": validate_inventory_record,
+        "customer": validate_customer_record,
+        "order": validate_order_record,
+        "return": validate_return_record,
+        "store": validate_store_record,
+        "monthly_revenue": validate_monthly_revenue_record,
+    }
+    return validators.get(csv_type)
+
+
 def cmd_validate(args):
-    """Validate a CSV file against expected schema."""
+    """
+    Validate a CSV file against expected schema.
+
+    Automatically detects the CSV type by column headers and applies
+    the corresponding record validator.
+    """
     try:
         rows = read_csv_rows(args.file)
         if not rows:
             print(f"Error: File is empty: {args.file}", file=sys.stderr)
             return 1
 
+        columns = list(rows[0].keys())
+        csv_type = _detect_csv_type(columns)
+        validator_fn = _get_validator(csv_type) if csv_type else None
+
         print(f"Validating file: {args.file}")
+        print(f"Detected type: {csv_type if csv_type else 'unknown'}")
         print(f"Total rows: {len(rows)}")
-        print(f"Total columns: {len(rows[0].keys())}")
-        print(f"Columns: {', '.join(rows[0].keys())}")
+        print(f"Total columns: {len(columns)}")
+        print(f"Columns: {', '.join(columns)}")
         print()
+
+        if not validator_fn:
+            print("Warning: Unknown CSV schema. No specific validation available.", file=sys.stderr)
+            print(f"Found {len(rows)} rows with {len(columns)} columns.")
+            return 0
 
         errors_found = 0
         for i, row in enumerate(rows, 1):
             try:
-                if "store_id" in row and "sale_amount" in row:
-                    validate_sales_record(row)
-                elif "product_name" in row and "current_stock" in row:
-                    validate_inventory_record(row)
-                else:
-                    pass
+                validator_fn(row)
             except DataValidationError as e:
                 print(f"  Row {i}: {e}")
                 errors_found += 1
