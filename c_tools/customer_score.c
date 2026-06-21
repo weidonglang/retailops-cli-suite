@@ -215,8 +215,8 @@ int parse_customers_csv(const char *filename, CustomerRecord *customers, int *co
         if (customer_count < MAX_CUSTOMERS) {
             customers[customer_count] = record;
             customers[customer_count].valid = 1;
+            customer_count++;
         }
-        customer_count++;
     }
 
     fclose(file);
@@ -281,8 +281,8 @@ int parse_orders_csv(const char *filename, OrderRecord *orders, int *count) {
         if (order_count < MAX_ORDERS) {
             orders[order_count] = record;
             orders[order_count].valid = 1;
+            order_count++;
         }
-        order_count++;
     }
 
     fclose(file);
