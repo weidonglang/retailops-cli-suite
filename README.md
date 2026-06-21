@@ -115,7 +115,7 @@ Creates `release/retailops-cli-suite-v1.0.0.zip`.
 
 ```
 retailops-cli-suite/
-  retailops/       - Python package (CLI + analytics modules)
+  retailops/       - Python package (CLI + analytics + data loading modules)
   c_tools/         - C source files
   r_scripts/       - R analysis scripts
   examples/        - Sample CSV data
