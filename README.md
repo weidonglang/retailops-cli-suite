@@ -83,6 +83,16 @@ powershell -ExecutionPolicy Bypass -File tests/test_c_tools.ps1
 
 ---
 
+## Code Statistics
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/count_lines.ps1
+```
+
+This script counts lines for `.py`, `.c`, `.R`, `.ps1`, `.md`, `.csv`, and `.txt` files, excluding `.git`, `build`, `dist`, `.exe`, `.zip`, and `__pycache__`. Total lines must be at least 5000; the script returns exit code 1 if not met.
+
+---
+
 ## Building
 
 ### Build Python Executable
