@@ -1,0 +1,31 @@
+return_id,order_id,product_id,quantity,return_amount,return_reason,return_date
+2001,1001,101,1,29.99,Defective item,2026-01-12
+2002,1003,103,1,189.00,Wrong item shipped,2026-01-15
+2003,1007,107,2,16.00,Not as described,2026-01-18
+2004,1012,104,1,5.50,Customer changed mind,2026-01-20
+2005,1019,109,1,55.00,Defective item,2026-01-24
+2006,1025,105,1,75.00,No longer needed,2026-01-28
+2007,1031,101,1,29.99,Wrong item shipped,2026-01-30
+2008,1037,107,1,8.00,Customer changed mind,2026-02-02
+2009,1043,103,1,189.00,Defective item,2026-02-05
+2010,1050,110,1,120.00,Not as described,2026-02-08
+2011,1055,106,1,45.00,No longer needed,2026-02-12
+2012,1061,101,1,29.99,Defective item,2026-02-16
+2013,1067,108,1,15.50,Customer changed mind,2026-02-18
+2014,1073,105,1,75.00,Wrong item shipped,2026-02-22
+2015,1079,110,1,120.00,Defective item,2026-02-25
+2016,1083,105,1,75.00,Not as described,2026-02-28
+2017,1089,110,1,120.00,No longer needed,2026-03-02
+2018,1093,105,1,75.00,Customer changed mind,2026-03-05
+2019,1099,110,1,120.00,Defective item,2026-03-08
+2020,1005,105,1,75.00,Wrong item shipped,2026-01-15
+2021,1015,103,1,189.00,Customer changed mind,2026-01-22
+2022,1029,109,1,55.00,Defective item,2026-01-28
+2023,1045,105,1,75.00,Not as described,2026-02-05
+2024,1059,110,1,120.00,No longer needed,2026-02-14
+2025,1069,110,1,120.00,Defective item,2026-02-20
+2026,1075,106,1,45.00,Customer changed mind,2026-02-22
+2027,1085,106,1,45.00,Wrong item shipped,2026-02-26
+2028,1095,106,1,45.00,Defective item,2026-03-04
+2029,1101,103,1,189.00,Not as described,2026-03-10
+2030,1105,106,1,45.00,Customer changed mind,2026-03-12

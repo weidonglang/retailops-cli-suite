@@ -1,0 +1,43 @@
+product_id,product_name,category,current_stock,reorder_point,unit_cost,supplier
+101,Laptop Charger,Electronics,45,20,12.00,TechSupply Co
+102,Wireless Mouse,Electronics,120,30,8.00,TechSupply Co
+103,Office Chair,Furniture,15,10,95.00,OfficePro Ltd
+104,Notebook Set,Stationery,200,50,2.50,PaperHouse Inc
+105,Coffee Maker,Appliances,25,15,35.00,HomeGoods LLC
+106,Desk Lamp,Lighting,60,20,18.00,LightUp Corp
+107,Printer Paper,Stationery,350,100,3.50,PaperHouse Inc
+108,USB Hub,Electronics,80,25,6.00,TechSupply Co
+109,Monitor Stand,Accessories,40,15,22.00,OfficePro Ltd
+110,Bluetooth Speaker,Electronics,30,10,48.00,TechSupply Co
+111,Desk Organizer,Accessories,55,20,10.00,OfficePro Ltd
+112,Ethernet Cable,Electronics,90,30,5.00,TechSupply Co
+113,Whiteboard,Furniture,8,5,45.00,OfficePro Ltd
+114,Stapler,Stationery,150,40,3.00,PaperHouse Inc
+115,Electric Kettle,Appliances,18,10,28.00,HomeGoods LLC
+116,Floor Lamp,Lighting,22,10,55.00,LightUp Corp
+117,Webcam,Electronics,35,15,35.00,TechSupply Co
+118,Pen Set,Stationery,180,50,4.00,PaperHouse Inc
+119,Bookshelf,Furniture,10,5,85.00,OfficePro Ltd
+120,Surge Protector,Electronics,65,20,12.00,TechSupply Co
+121,File Cabinet,Furniture,5,3,120.00,OfficePro Ltd
+122,Desk Fan,Appliances,20,10,22.00,HomeGoods LLC
+123,LED Strip,Lighting,40,15,18.00,LightUp Corp
+124,Keyboard,Electronics,50,20,25.00,TechSupply Co
+125,Paper Clips,Stationery,500,100,1.00,PaperHouse Inc
+126,Monitor,Electronics,12,8,150.00,TechSupply Co
+127,Desk Chair,Furniture,20,10,150.00,OfficePro Ltd
+128,Notebook,Stationery,300,80,2.00,PaperHouse Inc
+129,Tablet Stand,Accessories,35,12,15.00,OfficePro Ltd
+130,Wireless Charger,Electronics,45,15,18.00,TechSupply Co
+131,Shredder,Appliances,7,5,55.00,HomeGoods LLC
+132,Task Light,Lighting,30,10,25.00,LightUp Corp
+133,Cable Ties,Accessories,200,50,2.00,OfficePro Ltd
+134,Mouse Pad,Accessories,100,30,5.00,OfficePro Ltd
+135,Headset,Electronics,25,10,45.00,TechSupply Co
+136,Calendar,Stationery,60,20,8.00,PaperHouse Inc
+137,Water Cooler,Appliances,3,2,180.00,HomeGoods LLC
+138,Desk Mat,Accessories,45,15,12.00,OfficePro Ltd
+139,Speaker,Electronics,18,8,60.00,TechSupply Co
+140,Wall Clock,Accessories,30,10,15.00,OfficePro Ltd
+141,Sticky Notes,Stationery,250,80,1.50,PaperHouse Inc
+142,USB Drive,Electronics,70,25,10.00,TechSupply Co
