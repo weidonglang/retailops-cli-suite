@@ -5,9 +5,11 @@ Provides functions for analyzing customer data, including order counts,
 revenue attribution, customer segmentation, and summary generation.
 """
 
-import csv
 import os
 import sys
+
+from retailops.errors import FileLoadError, DataValidationError
+from retailops.data_loader import load_customers as load_customers_data, load_orders
 
 
 # Customer segment constants
@@ -28,7 +30,12 @@ def calculate_customer_order_counts(customers, orders):
     Returns:
         Dict mapping customer_id -> order_count.
     """
-    counts = {c["customer_id"]: 0 for c in customers if "customer_id" in c}
+    counts = {}
+    for c in customers:
+        if isinstance(c, dict):
+            cid = c.get("customer_id")
+            if cid:
+                counts[cid] = 0
     for o in orders:
         cid = o.get("customer_id")
         if cid in counts:
@@ -49,7 +56,12 @@ def calculate_customer_revenue(customers, orders):
     Returns:
         Dict mapping customer_id -> total_revenue.
     """
-    revenue = {c["customer_id"]: 0.0 for c in customers if "customer_id" in c}
+    revenue = {}
+    for c in customers:
+        if isinstance(c, dict):
+            cid = c.get("customer_id")
+            if cid:
+                revenue[cid] = 0.0
     for o in orders:
         cid = o.get("customer_id")
         if cid in revenue:
@@ -105,7 +117,11 @@ def build_customer_profiles(customers, orders):
     profiles = []
 
     for c in customers:
-        cid = c["customer_id"]
+        if not isinstance(c, dict):
+            continue
+        cid = c.get("customer_id", "")
+        if not cid:
+            continue
         order_count = counts.get(cid, 0)
         total_revenue = revenues.get(cid, 0.0)
         segment = assign_customer_segment(total_revenue, order_count)
@@ -154,7 +170,7 @@ def find_top_customers(customer_profiles, limit=5):
         List of profile dicts sorted by total_revenue descending.
     """
     sorted_profiles = sorted(
-        customer_profiles, key=lambda x: x["total_revenue"], reverse=True
+        customer_profiles, key=lambda x: x.get("total_revenue", 0), reverse=True
     )
     return sorted_profiles[:limit]
 
@@ -225,37 +241,25 @@ def print_customer_summary(summary):
     print("=" * 60)
 
 
-def load_csv(filepath):
-    """Load a CSV file and return list of dicts."""
-    if not os.path.exists(filepath):
-        print(f"Error: File not found: {filepath}", file=sys.stderr)
-        sys.exit(1)
-    rows = []
-    with open(filepath, "r", encoding="utf-8-sig") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            rows.append(row)
-    if not rows:
-        print(f"Error: Empty file: {filepath}", file=sys.stderr)
-        sys.exit(1)
-    return rows
-
-
 def main():
     """Main entry point when run as a script."""
     examples_dir = os.path.join(os.path.dirname(__file__), "..", "examples")
     customers_path = os.path.abspath(os.path.join(examples_dir, "customers.csv"))
     orders_path = os.path.abspath(os.path.join(examples_dir, "orders.csv"))
 
-    print(f"Loading customers from: {customers_path}")
-    customers = load_csv(customers_path)
-    print(f"Loading orders from: {orders_path}")
-    orders = load_csv(orders_path)
-    print(f"Loaded {len(customers)} customers and {len(orders)} orders.")
-    print()
+    try:
+        print(f"Loading customers from: {customers_path}")
+        customers = load_customers_data(customers_path)
+        print(f"Loading orders from: {orders_path}")
+        orders = load_orders(orders_path)
+        print(f"Loaded {len(customers)} customers and {len(orders)} orders.")
+        print()
 
-    summary = build_customer_summary(customers, orders)
-    print_customer_summary(summary)
+        summary = build_customer_summary(customers, orders)
+        print_customer_summary(summary)
+    except (FileLoadError, DataValidationError) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
