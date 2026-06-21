@@ -7,8 +7,15 @@ the RetailOps CLI Suite. All loading functions return list of dicts.
 
 import csv
 import os
+import warnings
 
 from retailops.errors import FileLoadError, DataValidationError
+from retailops.validators import (
+    validate_sales_record, validate_inventory_record,
+    validate_customer_record, validate_order_record,
+    validate_return_record, validate_store_record,
+    validate_monthly_revenue_record,
+)
 
 
 def read_csv_rows(file_path):
@@ -69,18 +76,50 @@ def require_columns(rows, required_columns):
             )
 
 
+def _validate_rows(rows, validator_fn, record_label):
+    """
+    Validate all rows using the given validator function.
+
+    Applies the validator to each row. Rows that fail validation
+    are skipped with a warning rather than failing the entire load.
+
+    Args:
+        rows: List of dict rows to validate.
+        validator_fn: A validator function (e.g., validate_sales_record).
+        record_label: Label for warning messages (e.g., "sales").
+
+    Returns:
+        List of validated (cleaned) dicts.
+    """
+    validated = []
+    for i, row in enumerate(rows, 1):
+        try:
+            cleaned = validator_fn(row)
+            validated.append(cleaned)
+        except DataValidationError as e:
+            warnings.warn(f"Row {i} in {record_label} data is invalid: {e}")
+    if not validated:
+        raise DataValidationError(
+            f"No valid {record_label} records found after validation."
+        )
+    return validated
+
+
 def load_sales(file_path):
     """
-    Load sales/orders CSV data.
+    Load and validate sales/orders CSV data.
 
     Expected columns: order_id, customer_id, store_id, product_id,
     product_name, category, quantity, unit_price, order_date, total_amount.
+
+    Each row is validated via validate_sales_record(). Invalid rows
+    produce warnings and are excluded from the result.
 
     Args:
         file_path: Path to the sales CSV file.
 
     Returns:
-        List of dicts representing sales records.
+        List of validated dicts representing sales records.
     """
     required = [
         "order_id", "customer_id", "store_id", "product_id",
@@ -89,21 +128,24 @@ def load_sales(file_path):
     ]
     rows = read_csv_rows(file_path)
     require_columns(rows, required)
-    return rows
+    return _validate_rows(rows, validate_sales_record, "sales")
 
 
 def load_inventory(file_path):
     """
-    Load inventory CSV data.
+    Load and validate inventory CSV data.
 
     Expected columns: product_id, product_name, category, current_stock,
     reorder_point, unit_cost, supplier.
+
+    Each row is validated via validate_inventory_record(). Invalid rows
+    produce warnings and are excluded from the result.
 
     Args:
         file_path: Path to the inventory CSV file.
 
     Returns:
-        List of dicts representing inventory records.
+        List of validated dicts representing inventory records.
     """
     required = [
         "product_id", "product_name", "category", "current_stock",
@@ -111,39 +153,45 @@ def load_inventory(file_path):
     ]
     rows = read_csv_rows(file_path)
     require_columns(rows, required)
-    return rows
+    return _validate_rows(rows, validate_inventory_record, "inventory")
 
 
 def load_customers(file_path):
     """
-    Load customer CSV data.
+    Load and validate customer CSV data.
 
     Expected columns: customer_id, name, email, city, signup_date.
+
+    Each row is validated via validate_customer_record(). Invalid rows
+    produce warnings and are excluded from the result.
 
     Args:
         file_path: Path to the customers CSV file.
 
     Returns:
-        List of dicts representing customer records.
+        List of validated dicts representing customer records.
     """
     required = ["customer_id", "name", "email", "city", "signup_date"]
     rows = read_csv_rows(file_path)
     require_columns(rows, required)
-    return rows
+    return _validate_rows(rows, validate_customer_record, "customer")
 
 
 def load_orders(file_path):
     """
-    Load orders CSV data (simplified order records).
+    Load and validate orders CSV data.
 
     Expected columns: order_id, customer_id, store_id, product_id,
     quantity, unit_price, order_date.
+
+    Each row is validated via validate_order_record(). Invalid rows
+    produce warnings and are excluded from the result.
 
     Args:
         file_path: Path to the orders CSV file.
 
     Returns:
-        List of dicts representing order records.
+        List of validated dicts representing order records.
     """
     required = [
         "order_id", "customer_id", "store_id", "product_id",
@@ -151,21 +199,24 @@ def load_orders(file_path):
     ]
     rows = read_csv_rows(file_path)
     require_columns(rows, required)
-    return rows
+    return _validate_rows(rows, validate_order_record, "order")
 
 
 def load_returns(file_path):
     """
-    Load returns CSV data.
+    Load and validate returns CSV data.
 
     Expected columns: return_id, order_id, product_id, quantity,
     return_amount, return_reason, return_date.
+
+    Each row is validated via validate_return_record(). Invalid rows
+    produce warnings and are excluded from the result.
 
     Args:
         file_path: Path to the returns CSV file.
 
     Returns:
-        List of dicts representing return records.
+        List of validated dicts representing return records.
     """
     required = [
         "return_id", "order_id", "product_id", "quantity",
@@ -173,21 +224,24 @@ def load_returns(file_path):
     ]
     rows = read_csv_rows(file_path)
     require_columns(rows, required)
-    return rows
+    return _validate_rows(rows, validate_return_record, "return")
 
 
 def load_stores(file_path):
     """
-    Load store CSV data.
+    Load and validate store CSV data.
 
     Expected columns: store_id, store_name, city, state, manager,
     open_date, size_sqft.
+
+    Each row is validated via validate_store_record(). Invalid rows
+    produce warnings and are excluded from the result.
 
     Args:
         file_path: Path to the stores CSV file.
 
     Returns:
-        List of dicts representing store records.
+        List of validated dicts representing store records.
     """
     required = [
         "store_id", "store_name", "city", "state", "manager",
@@ -195,25 +249,28 @@ def load_stores(file_path):
     ]
     rows = read_csv_rows(file_path)
     require_columns(rows, required)
-    return rows
+    return _validate_rows(rows, validate_store_record, "store")
 
 
 def load_monthly_revenue(file_path):
     """
-    Load monthly revenue CSV data.
+    Load and validate monthly revenue CSV data.
 
     Expected columns: year, month, store_id, total_revenue, total_orders.
+
+    Each row is validated via validate_monthly_revenue_record(). Invalid rows
+    produce warnings and are excluded from the result.
 
     Args:
         file_path: Path to the monthly revenue CSV file.
 
     Returns:
-        List of dicts representing monthly revenue records.
+        List of validated dicts representing monthly revenue records.
     """
     required = ["year", "month", "store_id", "total_revenue", "total_orders"]
     rows = read_csv_rows(file_path)
     require_columns(rows, required)
-    return rows
+    return _validate_rows(rows, validate_monthly_revenue_record, "monthly_revenue")
 
 
 def _print_loader_summary(name, rows):
