@@ -1,0 +1,43 @@
+product_id,product_name,category,current_stock,reorder_point,unit_cost,supplier
+101,Laptop Charger,Electronics,150,30,12.00,PowerTech Inc.
+102,Wireless Mouse,Electronics,200,50,8.50,InputMaster Corp.
+103,Office Chair,Furniture,45,10,95.00,ComfortSeating Ltd.
+104,Notebook Set,Stationery,500,100,2.00,PaperSupply Co.
+105,Coffee Maker,Appliances,60,15,35.00,BrewMaster Inc.
+106,Desk Lamp,Lighting,120,25,18.00,BrightLight Co.
+107,Printer Paper,Stationery,800,200,3.50,PaperSupply Co.
+108,USB Hub,Electronics,180,40,6.00,ConnectPro Ltd.
+109,Monitor Stand,Accessories,75,20,22.00,ErgoTech Inc.
+110,Bluetooth Speaker,Electronics,90,25,55.00,SoundWave Corp.
+111,Keyboard,Miscellaneous,5,10,25.00,InputMaster Corp.
+112,Cable Organizer,Accessories,3,15,8.00,ConnectPro Ltd.
+113,External Hard Drive,Electronics,30,10,65.00,DataSafe Inc.
+114,Desk Organizer,Stationery,0,20,12.00,WorkSmart Ltd.
+115,Monitor,Electronics,25,8,180.00,ViewPerfect Co.
+116,Webcam,Electronics,40,12,35.00,VisualTech Inc.
+117,Headset,Electronics,55,20,28.00,SoundWave Corp.
+118,Packing Tape,Stationery,300,80,2.50,PaperSupply Co.
+119,Whiteboard,Furniture,15,5,45.00,WorkSmart Ltd.
+120,Paper Shredder,Appliances,20,8,60.00,OfficeGear Inc.
+121,Stapler,Stationery,250,60,4.00,PaperSupply Co.
+122,Desk Fan,Appliances,35,10,22.00,BreezeTech Inc.
+123,Filing Cabinet,Furniture,18,5,85.00,ComfortSeating Ltd.
+124,Calculator,Electronics,60,15,15.00,NumWorks Inc.
+125,Bookend Set,Accessories,40,12,10.00,WorkSmart Ltd.
+126,Laptop Stand,Accessories,28,8,30.00,ErgoTech Inc.
+127,Desk Pad,Stationery,150,40,8.00,WorkSmart Ltd.
+128,Projector,Electronics,12,4,350.00,ViewPerfect Co.
+129,Docking Station,Electronics,22,6,75.00,ConnectPro Ltd.
+130,Surge Protector,Electronics,100,30,15.00,PowerTech Inc.
+131,Phone Stand,Accessories,80,20,6.00,ErgoTech Inc.
+132,Pencil Case,Stationery,400,100,3.00,PaperSupply Co.
+133,Binder,Stationery,350,80,5.00,PaperSupply Co.
+134,Highlighter Set,Stationery,600,150,2.50,PaperSupply Co.
+135,Scissors,Stationery,200,50,3.00,OfficeGear Inc.
+136,Tape Dispenser,Stationery,90,25,7.00,OfficeGear Inc.
+137,Ruler,Stationery,180,40,1.50,PaperSupply Co.
+138,Mouse Pad,Accessories,250,60,4.00,ErgoTech Inc.
+139,Label Maker,Appliances,25,8,40.00,OfficeGear Inc.
+140,Letter Tray,Stationery,100,30,6.00,WorkSmart Ltd.
+141,Trash Can,Furniture,40,10,18.00,WorkSmart Ltd.
+142,Waste Bin,Furniture,35,10,22.00,WorkSmart Ltd.

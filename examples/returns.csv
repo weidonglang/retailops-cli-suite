@@ -1,0 +1,29 @@
+return_id,order_id,product_id,product_name,category,quantity,return_amount,return_reason,return_date
+2001,1001,101,Laptop Charger,Electronics,1,29.99,Defective,2026-01-12
+2002,1003,103,Office Chair,Furniture,1,189.00,Wrong item,2026-01-14
+2003,1005,105,Coffee Maker,Appliances,1,75.00,Not as described,2026-01-16
+2004,1008,108,USB Hub,Electronics,2,31.00,Defective,2026-01-18
+2005,1010,110,Bluetooth Speaker,Electronics,1,120.00,No longer needed,2026-01-20
+2006,1012,104,Notebook Set,Stationery,5,27.50,Quality issue,2026-01-22
+2007,1015,103,Office Chair,Furniture,1,189.00,Damaged in shipping,2026-01-25
+2008,1018,110,Bluetooth Speaker,Electronics,1,120.00,Defective,2026-01-28
+2009,1020,109,Monitor Stand,Accessories,1,55.00,Wrong item,2026-01-30
+2010,1022,105,Coffee Maker,Appliances,1,75.00,Not as described,2026-02-02
+2011,1024,104,Notebook Set,Stationery,3,16.50,Quality issue,2026-02-04
+2012,1027,110,Bluetooth Speaker,Electronics,1,120.00,Defective,2026-02-08
+2013,1030,106,Desk Lamp,Lighting,2,90.00,Damaged in shipping,2026-02-10
+2014,1032,105,Coffee Maker,Appliances,1,75.00,No longer needed,2026-02-12
+2015,1034,102,Wireless Mouse,Electronics,1,19.99,Defective,2026-02-15
+2016,1036,103,Office Chair,Furniture,1,189.00,Wrong item,2026-02-18
+2017,1039,107,Printer Paper,Stationery,5,40.00,Quality issue,2026-02-20
+2018,1041,105,Coffee Maker,Appliances,2,150.00,Not as described,2026-02-22
+2019,1044,101,Laptop Charger,Electronics,1,29.99,Defective,2026-02-25
+2020,1046,103,Office Chair,Furniture,1,189.00,Damaged in shipping,2026-02-28
+2021,1048,110,Bluetooth Speaker,Electronics,1,120.00,No longer needed,2026-03-02
+2022,1050,104,Notebook Set,Stationery,5,27.50,Quality issue,2026-03-05
+2023,1053,105,Coffee Maker,Appliances,1,75.00,Defective,2026-03-08
+2024,1055,103,Office Chair,Furniture,1,189.00,Wrong item,2026-03-10
+2025,1058,110,Bluetooth Speaker,Electronics,2,240.00,Not as described,2026-03-12
+2026,1060,109,Monitor Stand,Accessories,1,55.00,Defective,2026-03-15
+2027,1062,107,Printer Paper,Stationery,5,40.00,Quality issue,2026-03-18
+2028,1064,103,Office Chair,Furniture,1,189.00,Damaged in shipping,2026-03-20

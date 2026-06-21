@@ -1,0 +1,53 @@
+customer_id,name,email,city,signup_date
+1,Alice Johnson,alice.johnson@email.com,New York,2025-06-01
+2,Bob Martinez,bob.martinez@email.com,Los Angeles,2025-06-05
+3,Catherine Lee,catherine.lee@email.com,Chicago,2025-06-10
+4,David Kim,david.kim@email.com,Portland,2025-06-15
+5,Elena Garcia,elena.garcia@email.com,Atlanta,2025-06-20
+6,Frank Wilson,frank.wilson@email.com,Minneapolis,2025-07-01
+7,Grace Chen,grace.chen@email.com,Phoenix,2025-07-05
+8,Henry Davis,henry.davis@email.com,San Francisco,2025-07-10
+9,Isabella Torres,isabella.torres@email.com,Austin,2025-07-15
+10,Jake Thompson,jake.thompson@email.com,Seattle,2025-07-20
+11,Karen Brown,karen.brown@email.com,Washington DC,2025-08-01
+12,Leo Anderson,leo.anderson@email.com,Miami,2025-08-05
+13,Maria Santos,maria.santos@email.com,Denver,2025-08-10
+14,Nathan White,nathan.white@email.com,Boston,2025-08-15
+15,Oliver Harris,oliver.harris@email.com,New York,2025-08-20
+16,Pamela Clark,pamela.clark@email.com,Los Angeles,2025-09-01
+17,Quinn Robinson,quinn.robinson@email.com,Chicago,2025-09-05
+18,Rachel Walker,rachel.walker@email.com,Portland,2025-09-10
+19,Samuel Hall,samuel.hall@email.com,Atlanta,2025-09-15
+20,Tina Allen,tina.allen@email.com,Minneapolis,2025-09-20
+21,Victor Young,victor.young@email.com,Phoenix,2025-10-01
+22,Wendy King,wendy.king@email.com,San Francisco,2025-10-05
+23,Xander Wright,xander.wright@email.com,Austin,2025-10-10
+24,Yvonne Lopez,yvonne.lopez@email.com,Seattle,2025-10-15
+25,Zachary Hill,zachary.hill@email.com,Washington DC,2025-10-20
+26,Abigail Scott,abigail.scott@email.com,Miami,2025-11-01
+27,Benjamin Green,benjamin.green@email.com,Denver,2025-11-05
+28,Chloe Adams,chloe.adams@email.com,Boston,2025-11-10
+29,Daniel Baker,daniel.baker@email.com,New York,2025-11-15
+30,Eva Nelson,eva.nelson@email.com,Los Angeles,2025-11-20
+31,Fiona Carter,fiona.carter@email.com,Chicago,2025-12-01
+32,George Mitchell,george.mitchell@email.com,Portland,2025-12-05
+33,Hannah Perez,hannah.perez@email.com,Atlanta,2025-12-10
+34,Ian Roberts,ian.roberts@email.com,Minneapolis,2025-12-15
+35,Julia Turner,julia.turner@email.com,Phoenix,2025-12-20
+36,Kevin Phillips,kevin.phillips@email.com,San Francisco,2026-01-01
+37,Lily Campbell,lily.campbell@email.com,Austin,2026-01-05
+38,Matthew Parker,matthew.parker@email.com,Seattle,2026-01-10
+39,Natalie Evans,natalie.evans@email.com,Washington DC,2026-01-15
+40,Oscar Collins,oscar.collins@email.com,Miami,2026-01-20
+41,Penelope Stewart,penelope.stewart@email.com,Denver,2026-02-01
+42,Raymond Morris,raymond.morris@email.com,Boston,2026-02-05
+43,Samantha Rivera,samantha.rivera@email.com,New York,2026-02-10
+44,Theodore Cook,theodore.cook@email.com,Los Angeles,2026-02-15
+45,Ursula Rogers,ursula.rogers@email.com,Chicago,2026-02-20
+46,Vanessa Reed,vanessa.reed@email.com,Portland,2026-03-01
+47,William Ward,william.ward@email.com,Atlanta,2026-03-05
+48,Ximena Bell,ximena.bell@email.com,Minneapolis,2026-03-10
+49,Yosef Murphy,yosef.murphy@email.com,Phoenix,2026-03-15
+50,Zara Cooper,zara.cooper@email.com,San Francisco,2026-03-20
+51,Amanda Foster,amanda.foster@email.com,Austin,2026-03-25
+52,Brandon Bailey,brandon.bailey@email.com,Seattle,2026-03-28
