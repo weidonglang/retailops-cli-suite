@@ -83,22 +83,38 @@ cat("============================================================\n\n")
 customers <- read_csv_safe(customers_file)
 orders <- read_csv_safe(orders_file)
 
-# ---- Data Validation ----
+# ---- Schema Boundary Validation ----
 required_customer_cols <- c("customer_id", "name")
 required_order_cols <- c("order_id", "customer_id", "quantity", "unit_price")
 
+# Validate customer columns with schema boundary error messages
 for (col in required_customer_cols) {
   if (!(col %in% names(customers))) {
-    cat(sprintf("ERROR: Missing required column '%s' in customers file.\n", col))
+    cat(sprintf("SCHEMA BOUNDARY ERROR: Missing required column '%s' in customers file.\n", col))
+    cat(sprintf("Expected columns: %s\n", paste(required_customer_cols, collapse = ", ")))
+    cat(sprintf("Actual columns: %s\n", paste(names(customers), collapse = ", ")))
     quit(status = 1)
   }
 }
 
+# Validate order columns with schema boundary error messages
 for (col in required_order_cols) {
   if (!(col %in% names(orders))) {
-    cat(sprintf("ERROR: Missing required column '%s' in orders file.\n", col))
+    cat(sprintf("SCHEMA BOUNDARY ERROR: Missing required column '%s' in orders file.\n", col))
+    cat(sprintf("Expected columns: %s\n", paste(required_order_cols, collapse = ", ")))
+    cat(sprintf("Actual columns: %s\n", paste(names(orders), collapse = ", ")))
     quit(status = 1)
   }
+}
+
+# Schema boundary: ensure data has enough rows for meaningful analysis
+if (nrow(customers) < 1) {
+  cat("SCHEMA BOUNDARY ERROR: Customers file must have at least 1 record.\n")
+  quit(status = 1)
+}
+if (nrow(orders) < 1) {
+  cat("SCHEMA BOUNDARY WARNING: Orders file is empty; all customers will be NEW.\n")
+  # Create empty orders with correct structure for downstream processing
 }
 
 # ---- Data Cleaning ----

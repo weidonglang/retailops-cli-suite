@@ -121,31 +121,106 @@ cat("Rows:", nrow(sales_data), "\n")
 names(sales_data) <- tolower(names(sales_data))
 
 # Identify required columns with flexible naming
-col_total_amount <- grep("total_amount|total|amount|revenue|price", 
-                          names(sales_data), value = TRUE)[1]
-col_quantity <- grep("quantity|qty|count|units", 
-                      names(sales_data), value = TRUE)[1]
-col_product <- grep("product_name|product|item_name|item", 
-                     names(sales_data), value = TRUE)[1]
-col_category <- grep("category|product_category|type|group", 
-                      names(sales_data), value = TRUE)[1]
-col_store <- grep("store_name|store|location|branch", 
-                   names(sales_data), value = TRUE)[1]
-col_date <- grep("date|sale_date|transaction_date|order_date", 
-                  names(sales_data), value = TRUE)[1]
+# Priority-based matching to avoid picking unit_price over total_amount
+if ("total_amount" %in% names(sales_data)) {
+  col_total_amount <- "total_amount"
+} else if ("total" %in% names(sales_data)) {
+  col_total_amount <- "total"
+} else if ("amount" %in% names(sales_data)) {
+  col_total_amount <- "amount"
+} else if ("revenue" %in% names(sales_data)) {
+  col_total_amount <- "revenue"
+} else if ("price" %in% names(sales_data)) {
+  col_total_amount <- "price"
+} else {
+  col_total_amount <- grep("total_amount|total|amount|revenue|price", 
+                            names(sales_data), value = TRUE)[1]
+}
+
+# Quantity: prefer "quantity" over "units" etc.
+if ("quantity" %in% names(sales_data)) {
+  col_quantity <- "quantity"
+} else {
+  col_quantity <- grep("qty|count|units", names(sales_data), value = TRUE)[1]
+}
+
+# Product: prefer "product_name" over "product" to match ID columns
+if ("product_name" %in% names(sales_data)) {
+  col_product <- "product_name"
+} else {
+  col_product <- grep("product|item_name|item", names(sales_data), value = TRUE)[1]
+}
+
+# Category
+if ("category" %in% names(sales_data)) {
+  col_category <- "category"
+} else {
+  col_category <- grep("product_category|type|group", names(sales_data), value = TRUE)[1]
+}
+
+# Store: prefer "store_name" over "store" to match ID columns
+if ("store_name" %in% names(sales_data)) {
+  col_store <- "store_name"
+} else {
+  col_store <- grep("store|location|branch", names(sales_data), value = TRUE)[1]
+}
+
+# Date: prefer "order_date" over generic "date"
+if ("order_date" %in% names(sales_data)) {
+  col_date <- "order_date"
+} else if ("sale_date" %in% names(sales_data)) {
+  col_date <- "sale_date"
+} else if ("transaction_date" %in% names(sales_data)) {
+  col_date <- "transaction_date"
+} else {
+  col_date <- grep("date", names(sales_data), value = TRUE)[1]
+}
+
+# Schema boundary check: ensure required column was matched
+if (is.na(col_total_amount) || length(col_total_amount) == 0) {
+  cat("SCHEMA BOUNDARY ERROR: No amount/revenue column found in sales data.\n")
+  cat("Expected one of: total_amount, total, amount, revenue, price\n")
+  cat("Actual columns:", paste(names(sales_data), collapse = ", "), "\n")
+  quit(status = 1)
+}
+# Warn but do not abort for optional columns
+if (is.na(col_quantity) || length(col_quantity) == 0) {
+  cat("SCHEMA BOUNDARY WARNING: No quantity column found; quantity analysis skipped.\n")
+  col_quantity <- NULL
+}
+if (is.na(col_product) || length(col_product) == 0) {
+  cat("SCHEMA BOUNDARY WARNING: No product column found; product grouping skipped.\n")
+  col_product <- NULL
+}
+if (is.na(col_category) || length(col_category) == 0) {
+  cat("SCHEMA BOUNDARY WARNING: No category column found; category grouping skipped.\n")
+  col_category <- NULL
+}
+if (is.na(col_store) || length(col_store) == 0) {
+  cat("SCHEMA BOUNDARY WARNING: No store column found; store grouping skipped.\n")
+  col_store <- NULL
+}
+if (is.na(col_date) || length(col_date) == 0) {
+  cat("SCHEMA BOUNDARY WARNING: No date column found; trend analysis skipped.\n")
+  col_date <- NULL
+}
 
 cat("Mapped columns:\n")
-cat("  Amount column:", col_total_amount, "\n")
-cat("  Quantity column:", col_quantity, "\n")
-cat("  Product column:", col_product, "\n")
-cat("  Category column:", col_category, "\n")
-cat("  Store column:", col_store, "\n")
-cat("  Date column:", col_date, "\n\n")
+cat("  Amount column:", if (!is.null(col_total_amount)) col_total_amount else "NONE (FATAL)", "\n")
+cat("  Quantity column:", if (!is.null(col_quantity)) col_quantity else "NONE", "\n")
+cat("  Product column:", if (!is.null(col_product)) col_product else "NONE", "\n")
+cat("  Category column:", if (!is.null(col_category)) col_category else "NONE", "\n")
+cat("  Store column:", if (!is.null(col_store)) col_store else "NONE", "\n")
+cat("  Date column:", if (!is.null(col_date)) col_date else "NONE", "\n\n")
+
+# Schema boundary check: total_amount column must be present, abort if missing
+if (is.null(col_total_amount)) {
+  cat("SCHEMA BOUNDARY FATAL: Cannot proceed without an amount/revenue column.\n")
+  quit(status = 1)
+}
 
 # Convert amount and quantity to numeric
-if (!is.null(col_total_amount)) {
-  sales_data[[col_total_amount]] <- safe_as_numeric(sales_data[[col_total_amount]])
-}
+sales_data[[col_total_amount]] <- safe_as_numeric(sales_data[[col_total_amount]])
 if (!is.null(col_quantity)) {
   sales_data[[col_quantity]] <- safe_as_numeric(sales_data[[col_quantity]])
 }
