@@ -13,7 +13,7 @@ $ErrorActionPreference = "Stop"
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $ProjectRoot
 
-$Version = "v1.0.0"
+$Version = "v1.0.1"
 $ReleaseDir = "$ProjectRoot\release"
 $PackageDir = "$ReleaseDir\retailops-cli-suite-$Version"
 $ZipPath = "$ReleaseDir\retailops-cli-suite-$Version.zip"
@@ -38,12 +38,27 @@ Write-Host ""
 # Step 2: Build Python executable
 Write-Host "Step 2: Building Python executable (retailops.exe)..." -ForegroundColor Yellow
 Write-Host "----------------------------------------" -ForegroundColor Gray
-$buildExeResult = & "powershell" "-ExecutionPolicy", "Bypass", "-File", "scripts\build_exe.ps1" 2>&1
-Write-Host $buildExeResult
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "ERROR: Python EXE build failed. Aborting release packaging." -ForegroundColor Red
+
+# Clean old build artifacts
+if (Test-Path "build") { Remove-Item -Recurse -Force "build" }
+if (Test-Path "dist") { Remove-Item -Recurse -Force "dist" }
+if (Test-Path "retailops.spec") { Remove-Item -Force "retailops.spec" }
+
+# Run PyInstaller directly (temporarily disable ErrorActionPreference for stderr)
+$originalErrorAction = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+try {
+    $pyiOutput = python -m PyInstaller --onefile --name retailops retailops/cli.py 2>&1
+    $pyiExitCode = $LASTEXITCODE
+} finally {
+    $ErrorActionPreference = $originalErrorAction
+}
+if ($pyiExitCode -ne 0) {
+    Write-Host "ERROR: PyInstaller build failed with exit code $pyiExitCode" -ForegroundColor Red
+    Write-Host $pyiOutput
     exit 1
 }
+Write-Host "  PyInstaller build completed successfully" -ForegroundColor Green
 if (-not (Test-Path "$ProjectRoot\dist\retailops.exe")) {
     Write-Host "ERROR: dist\retailops.exe not found after build." -ForegroundColor Red
     exit 1

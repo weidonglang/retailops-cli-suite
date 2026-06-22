@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# RetailOps CLI Suite specific ignores
+reports/
+release/*.zip
+release/retailops-cli-suite-*/
+*.spec
