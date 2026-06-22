@@ -105,32 +105,93 @@ cat("Rows:", nrow(inventory_data), "\n\n")
 # Normalize column names to lowercase
 names(inventory_data) <- tolower(names(inventory_data))
 
-# Identify required columns with flexible matching
-col_product <- grep("product_name|product|item_name|item|sku", 
-                     names(inventory_data), value = TRUE)[1]
-col_category <- grep("category|product_category|type|group|department", 
-                      names(inventory_data), value = TRUE)[1]
-col_stock <- grep("stock_quantity|quantity|stock|qty_on_hand|on_hand", 
-                   names(inventory_data), value = TRUE)[1]
-col_price <- grep("unit_price|price|cost|cost_per_unit", 
-                   names(inventory_data), value = TRUE)[1]
-col_reorder <- grep("reorder_point|reorder|min_stock|threshold", 
-                     names(inventory_data), value = TRUE)[1]
-col_supplier <- grep("supplier|vendor|manufacturer", 
-                      names(inventory_data), value = TRUE)[1]
+# Identify required columns with priority-based matching
+if ("product_name" %in% names(inventory_data)) {
+  col_product <- "product_name"
+} else {
+  col_product <- grep("product|item_name|item|sku", names(inventory_data), value = TRUE)[1]
+}
+
+if ("category" %in% names(inventory_data)) {
+  col_category <- "category"
+} else {
+  col_category <- grep("product_category|type|group|department", names(inventory_data), value = TRUE)[1]
+}
+
+if ("stock_quantity" %in% names(inventory_data)) {
+  col_stock <- "stock_quantity"
+} else if ("quantity" %in% names(inventory_data)) {
+  col_stock <- "quantity"
+} else {
+  col_stock <- grep("stock|qty_on_hand|on_hand", names(inventory_data), value = TRUE)[1]
+}
+
+if ("unit_price" %in% names(inventory_data)) {
+  col_price <- "unit_price"
+} else if ("price" %in% names(inventory_data)) {
+  col_price <- "price"
+} else {
+  col_price <- grep("cost|cost_per_unit", names(inventory_data), value = TRUE)[1]
+}
+
+if ("reorder_point" %in% names(inventory_data)) {
+  col_reorder <- "reorder_point"
+} else if ("reorder" %in% names(inventory_data)) {
+  col_reorder <- "reorder"
+} else {
+  col_reorder <- grep("min_stock|threshold", names(inventory_data), value = TRUE)[1]
+}
+
+if ("supplier" %in% names(inventory_data)) {
+  col_supplier <- "supplier"
+} else {
+  col_supplier <- grep("vendor|manufacturer", names(inventory_data), value = TRUE)[1]
+}
+
+# Schema boundary check: handle NA returns from grep
+if (is.na(col_stock) || length(col_stock) == 0) {
+  cat("SCHEMA BOUNDARY ERROR: No stock/quantity column found in inventory data.\n")
+  cat("Expected one of: stock_quantity, quantity, stock, qty_on_hand, on_hand\n")
+  cat("Actual columns:", paste(names(inventory_data), collapse = ", "), "\n")
+  quit(status = 1)
+}
+if (is.na(col_price) || length(col_price) == 0) {
+  cat("SCHEMA BOUNDARY WARNING: No price column found; value analysis skipped.\n")
+  col_price <- NULL
+}
+if (is.na(col_product) || length(col_product) == 0) {
+  cat("SCHEMA BOUNDARY WARNING: No product name column found.\n")
+  col_product <- NULL
+}
+if (is.na(col_category) || length(col_category) == 0) {
+  cat("SCHEMA BOUNDARY WARNING: No category column found; category summary skipped.\n")
+  col_category <- NULL
+}
+if (is.na(col_reorder) || length(col_reorder) == 0) {
+  cat("SCHEMA BOUNDARY WARNING: No reorder point column found; using default threshold of 10.\n")
+  col_reorder <- NULL
+}
+if (is.na(col_supplier) || length(col_supplier) == 0) {
+  cat("SCHEMA BOUNDARY WARNING: No supplier column found; supplier summary skipped.\n")
+  col_supplier <- NULL
+}
 
 cat("Mapped columns:\n")
-cat("  Product column:   ", col_product, "\n")
-cat("  Category column:  ", col_category, "\n")
-cat("  Stock column:     ", col_stock, "\n")
-cat("  Price column:     ", col_price, "\n")
-cat("  Reorder column:   ", col_reorder, "\n")
-cat("  Supplier column:  ", col_supplier, "\n\n")
+cat("  Product column:   ", if (!is.null(col_product)) col_product else "NONE", "\n")
+cat("  Category column:  ", if (!is.null(col_category)) col_category else "NONE", "\n")
+cat("  Stock column:     ", if (!is.null(col_stock)) col_stock else "NONE (FATAL)", "\n")
+cat("  Price column:     ", if (!is.null(col_price)) col_price else "NONE", "\n")
+cat("  Reorder column:   ", if (!is.null(col_reorder)) col_reorder else "NONE", "\n")
+cat("  Supplier column:  ", if (!is.null(col_supplier)) col_supplier else "NONE", "\n\n")
+
+# Schema boundary check: stock column is required
+if (is.null(col_stock)) {
+  cat("SCHEMA BOUNDARY FATAL: Cannot proceed without a stock/quantity column.\n")
+  quit(status = 1)
+}
 
 # Convert numeric columns
-if (!is.null(col_stock)) {
-  inventory_data[[col_stock]] <- safe_as_numeric(inventory_data[[col_stock]])
-}
+inventory_data[[col_stock]] <- safe_as_numeric(inventory_data[[col_stock]])
 if (!is.null(col_price)) {
   inventory_data[[col_price]] <- safe_as_numeric(inventory_data[[col_price]])
 }

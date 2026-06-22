@@ -99,15 +99,37 @@ cat("============================================================\n\n")
 
 raw_data <- read_csv_safe(revenue_file)
 
-# ---- Data Validation ----
+# ---- Data Validation with Schema Boundaries ----
 # Check for expected column patterns
 has_total_revenue <- "total_revenue" %in% names(raw_data)
 has_revenue <- "revenue" %in% names(raw_data)
 has_month <- "month" %in% names(raw_data)
 has_year <- "year" %in% names(raw_data)
 
+# Schema boundary: revenue column is required
 if (!has_total_revenue && !has_revenue) {
-  cat("ERROR: Missing revenue column. Need 'total_revenue' or 'revenue'.\n")
+  # Try the flexible approach: look for any column with "revenue" or "amount" in the name
+  rev_candidates <- grep("revenue|amount|total|sales", names(raw_data), value = TRUE, ignore.case = TRUE)
+  if (length(rev_candidates) == 0) {
+    cat("SCHEMA BOUNDARY ERROR: No revenue/amount column found.\n")
+    cat("Expected one of: total_revenue, revenue, amount, total, sales\n")
+    cat("Actual columns:", paste(names(raw_data), collapse = ", "), "\n")
+    quit(status = 1)
+  }
+  # Use the first matching column
+  rev_col_fallback <- rev_candidates[1]
+  cat(sprintf("SCHEMA BOUNDARY WARNING: Using '%s' as revenue column.\n", rev_col_fallback))
+  # Update flags
+  if (rev_col_fallback == "total_revenue") {
+    has_total_revenue <- TRUE
+  } else {
+    has_revenue <- TRUE
+  }
+}
+
+# Schema boundary check: at least one column besides revenue is needed for meaningful analysis
+if (ncol(raw_data) < 2) {
+  cat("SCHEMA BOUNDARY ERROR: Data must have at least 2 columns (period and revenue).\n")
   quit(status = 1)
 }
 
