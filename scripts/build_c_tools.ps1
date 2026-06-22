@@ -114,7 +114,7 @@ Write-Host ""
 Write-Host "[Step 5] Running smoke tests..." -ForegroundColor Yellow
 
 $smokeTests = @(
-    @{ Exe = "csv_validate.exe"; Args = @("examples/sales.csv", "8"); Desc = "CSV validate with sales.csv" },
+    @{ Exe = "csv_validate.exe"; Args = @("examples/sales.csv", "10"); Desc = "CSV validate with sales.csv" },
     @{ Exe = "inventory_check.exe"; Args = @("examples/inventory.csv"); Desc = "Inventory check" },
     @{ Exe = "revenue_trend.exe"; Args = @("examples/monthly_revenue.csv"); Desc = "Revenue trend" },
     @{ Exe = "customer_score.exe"; Args = @("examples/customers.csv", "examples/orders.csv"); Desc = "Customer score" }

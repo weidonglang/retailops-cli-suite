@@ -1,51 +1,35 @@
-# RetailOps CLI Suite v1.0.0 Release Notes
+# RetailOps CLI Suite v1.0.1 Release Notes
 
 ## Overview
 
 RetailOps CLI Suite is a multi-language command-line retail operations analysis toolkit. It provides analytics for sales, inventory, customers, returns, stores, and monthly revenue data. This release includes a Python CLI application, C language utility tools, R analysis scripts, sample datasets, and comprehensive documentation.
 
-## Features
+v1.0.1 is a maintenance release that fixes critical bugs and improves robustness across all components.
 
-### Python CLI Application (retailops.exe)
+## What's New in v1.0.1
 
-- **Sales Analysis**: Calculate total revenue, quantity sold, top products, top categories, top stores
-- **Inventory Analysis**: Calculate inventory value, reorder quantities, stock status (OUT_OF_STOCK, LOW_STOCK, OK)
-- **Customer Analysis**: Segment customers into VIP, LOYAL, ACTIVE, NEW tiers based on purchase history
-- **Returns Analysis**: Calculate return rates, group by reason and product, identify top return reasons
-- **Store Analysis**: Group and compare store performance, identify top and lowest performing stores
-- **Revenue Trend Analysis**: Monthly revenue totals, averages, growth rates, moving averages
-- **Markdown Report Generation**: Generate comprehensive retail analysis reports in Markdown format
-- **Data Validation**: Validate CSV data files with detailed error reporting
+### Bug Fixes
 
-### C Utility Tools (4 executables)
+1. **Data Validation Pipeline (Issue #53)**: Fixed data_loader.py to properly call validators before analysis in all modules. Now `validate_sales_record`, `validate_inventory_record`, etc. are consistently applied before any calculations.
 
-| Tool | Description |
-|------|-------------|
-| `csv_validate.exe` | Validate CSV field counts and report line statistics |
-| `inventory_check.exe` | Analyze inventory CSV: item count, total stock, low/out-of-stock counts |
-| `revenue_trend.exe` | Analyze monthly revenue CSV: totals, averages, best/worst months |
-| `customer_score.exe` | Score customers based on order count and revenue, output top 5 |
+2. **Error Handling (Issue #54)**: Fixed silent error swallowing across the entire codebase. All modules now properly propagate `DataValidationError` and `FileLoadError` exceptions. Removed blanket try/except blocks that were hiding errors.
 
-### R Analysis Scripts
+3. **Sales/Orders Schema (Issue #55)**: Fixed field name inconsistencies between orders.csv columns and the validators/sales modules. Updated CSV headers and validator field references to match: `customer_id`, `product`, `category`, `quantity`, `unit_price`, `total_price`.
 
-| Script | Description |
-|--------|-------------|
-| `sales_summary.R` | Sales total revenue, product revenue breakdown, category analysis |
-| `inventory_summary.R` | Inventory valuation, low stock alerts, reorder suggestions |
-| `customer_segments.R` | Customer segmentation and profile analysis |
-| `revenue_forecast.R` | Revenue trends and moving average calculations |
+4. **C Tool Bounds Checks (Issue #56)**: Added bounds checking to all 4 C tools to prevent buffer overflows on malformed input lines. Added `MAX_LINE` and `MAX_FIELDS` constants, input length validation, and proper error messaging.
 
-### Sample Datasets
+5. **R Script Schema Boundaries (Issue #57)**: Fixed R scripts to handle edge cases (empty files, missing columns, single rows). Added defensive checks before field access with `nrow() > 0` and `%in%` column existence checks.
 
-7 CSV datasets with realistic retail data:
+6. **Python Packaging (Issue #58)**: Fixed PyInstaller packaging. Updated package_release.ps1 with proper stderr handling, error checking, and post-build verification of executable existence.
 
-- `sales.csv` - 80+ sales transactions
-- `inventory.csv` - 40+ inventory items
-- `customers.csv` - 50+ customer records
-- `orders.csv` - 100+ order records
-- `returns.csv` - 25+ return records
-- `stores.csv` - 12 store locations
-- `monthly_revenue.csv` - 36 months of revenue data
+7. **Line Count Script (Issue #59)**: Fixed the count_lines.ps1 script to properly handle encoding on Windows and correctly count `.ps1` and `.c` source files.
+
+### Features
+
+- **Python CLI Application (retailops.exe)**: Sales Analysis, Inventory Analysis, Customer Analysis, Returns Analysis, Store Analysis, Revenue Trend Analysis, Markdown Report Generation, Data Validation
+- **C Utility Tools (4 executables)**: CSV validation, inventory check, revenue trend, customer scoring
+- **R Analysis Scripts (4 scripts)**: Sales summary, inventory summary, customer segments, revenue forecast
+- **Sample Datasets (7 CSV files)**: Realistic retail data for all analysis modules
 
 ## CLI Commands
 
@@ -128,10 +112,10 @@ python -m PyInstaller --onefile --name retailops retailops/cli.py
 ### Build C Tools
 
 ```powershell
-gcc c_tools/csv_validate.c -o c_tools/csv_validate.exe
-gcc c_tools/inventory_check.c -o c_tools/inventory_check.exe
-gcc c_tools/revenue_trend.c -o c_tools/revenue_trend.exe
-gcc c_tools/customer_score.c -o c_tools/customer_score.exe
+gcc c_tools/csv_validate.c -o dist/c_tools/csv_validate.exe
+gcc c_tools/inventory_check.c -o dist/c_tools/inventory_check.exe
+gcc c_tools/revenue_trend.c -o dist/c_tools/revenue_trend.exe
+gcc c_tools/customer_score.c -o dist/c_tools/customer_score.exe
 ```
 
 Or use the automated scripts:
@@ -161,7 +145,7 @@ powershell -ExecutionPolicy Bypass -File scripts/package_release.ps1
 ## File Structure (Release Zip)
 
 ```
-retailops-cli-suite-v1.0.0/
+retailops-cli-suite-v1.0.1/
   retailops.exe          # Python CLI executable
   README.md              # Project documentation
   LICENSE                # MIT license

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta:__legacy__"
 
 [project]
 name = "retailops-cli-suite"
-version = "1.0.0"
+version = "1.0.1"
 description = "A multi-language retail operations CLI toolkit with analytics, tests, Windows executables, and release packaging."
 readme = "README.md"
 requires-python = ">=3.8"
