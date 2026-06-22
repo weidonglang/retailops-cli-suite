@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=64.0", "wheel"]
+build-backend = "setuptools.build_meta:__legacy__"
+
+[project]
+name = "retailops-cli-suite"
+version = "1.0.0"
+description = "A multi-language retail operations CLI toolkit with analytics, tests, Windows executables, and release packaging."
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+keywords = ["retail", "cli", "analytics", "ops", "toolkit"]
+authors = [
+    {name = "Weidong Lang"}
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Utilities",
+]
+dependencies = []
+
+[project.optional-dependencies]
+build = ["pyinstaller"]
+dev = ["pytest", "flake8"]
+all = ["pyinstaller", "pytest", "flake8"]
+
+[project.urls]
+Homepage = "https://github.com/weidonglang/retailops-cli-suite"
+Repository = "https://github.com/weidonglang/retailops-cli-suite"
+Documentation = "https://github.com/weidonglang/retailops-cli-suite/blob/main/README.md"
+"Bug Tracker" = "https://github.com/weidonglang/retailops-cli-suite/issues"
+
+[project.scripts]
+retailops = "retailops.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["retailops", "retailops.*"]
+
+[tool.setuptools.package-data]
+retailops = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v"
+
+[tool.flake8]
+max-line-length = 120
+extend-ignore = ["E203", "W503"]
